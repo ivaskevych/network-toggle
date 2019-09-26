@@ -1,0 +1,29 @@
+{
+  "manifest_version": 2,
+  "name": "Network status toggle",
+  "short_name": "Network status",
+  "version": "0.0.1",
+  "description": "Allow you to toggle network status for browser tab",
+  "background": {
+    "scripts": [
+      "js/background.js"
+    ]
+  },
+  "page_action": {
+    "default_icon": "./img/icon32.png",
+    "default_title": "Network is ON"
+  },
+  "icons": {
+    "32": "./img/icon32.png",
+    "64": "./img/icon64.png",
+    "128": "./img/icon128.png",
+    "256": "./img/icon256.png"
+  },
+  "permissions": [
+    "tabs",
+    "activeTab",
+    "webRequest",
+    "webRequestBlocking",
+    "*://*/*"
+  ]
+}
