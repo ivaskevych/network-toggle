@@ -1,8 +1,14 @@
+const filter = {
+  urls: ['<all_urls>']
+};
+const extraInfoSpec = ['blocking'];
+
 function checkStatus(tabId, tab) {
   if (tab && !tab.active) {
     return;
   }
-  console.log('checkStatus', tabId);
+
+  console.log(`${tabId}::[checkStatus]::${tab ? 'onUpdated' : 'onActivated'}`);
 
   const currentStatus = localStorage.getItem(`block_requests_${tabId}`);
 
@@ -12,33 +18,31 @@ function checkStatus(tabId, tab) {
 
   const listenerIsSet = chrome.webRequest.onBeforeRequest.hasListener(
     networkListener,
-    {
-      urls: ['<all_urls>']
-    },
-    ['blocking']
+    filter,
+    extraInfoSpec
   );
+
+  console.log(`${tabId}::[checkStatus]::[listenerIsSet: ${listenerIsSet}]`);
 
   if (tabId !== -1) {
     if (currentStatus === 'true') {
       if (!listenerIsSet) {
+        console.log(`${tabId}::[checkStatus]::Setting listener up`);
         chrome.webRequest.onBeforeRequest.addListener(
           networkListener,
-          {
-            urls: ['<all_urls>']
-          },
-          ['blocking']
+          filter,
+          extraInfoSpec
         );
       }
 
       toggleIconState(tabId, true);
     } else {
       if (listenerIsSet) {
+        console.log(`${tabId}::[checkStatus]::Removing listener`);
         chrome.webRequest.onBeforeRequest.removeListener(
           networkListener,
-          {
-            urls: ['<all_urls>']
-          },
-          ['blocking']
+          filter,
+          extraInfoSpec
         );
       }
 
@@ -58,12 +62,12 @@ function toggleIconState(tabId, state) {
 }
 
 function saveStatus(tabId, blockStatus) {
-  console.log('Setting block status to: ' + blockStatus);
+  console.log(`${tabId}::[saveStatus]::[Saving status as: ${blockStatus}]`);
   localStorage.setItem(`block_requests_${tabId}`, blockStatus);
 }
 
 function networkListener(details) {
-  console.log('networkListener executed');
+  console.log('[networkListener]::Executed');
   // allow access to extension icons
   const extensionRoot = chrome.runtime.getURL('/');
   if (details.url.includes(extensionRoot)) {
@@ -79,35 +83,33 @@ chrome.tabs.onActivated.addListener(tab => checkStatus(tab.tabId)); // arg {tabI
 
 chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
   const tabId = tabs[0].id;
-  console.log('INIT' + tabId);
+  console.log(`${tabId}::[INITIALIZED]`);
   localStorage.clear(); // clear on init
   localStorage.setItem(`block_requests_${tabId}`, false);
   chrome.pageAction.show(tabId);
 });
 
 chrome.pageAction.onClicked.addListener(function (tab) {
-  console.log(tab.id + ' : Status ');
+  console.log(`${tab.id}::[pageAction.onClicked]`);
   const blockRequests = localStorage.getItem(`block_requests_${tab.id}`) === 'true';
   const listenerIsSet = chrome.webRequest.onBeforeRequest.hasListener(
     networkListener,
-    {
-      urls: ['<all_urls>']
-    },
-    ['blocking']
+    filter,
+    extraInfoSpec
   );
+
+  console.log(`${tab.id}::[pageAction.onClicked]::[listenerIsSet: ${listenerIsSet}]`);
 
   if (blockRequests) {
     // network was blocked - unblocking it
     saveStatus(tab.id, false);
 
     if (listenerIsSet) {
+      console.log(`${tab.id}::[pageAction.onClicked]::Removing listener`);
       chrome.webRequest.onBeforeRequest.removeListener(
         networkListener,
-        {
-          urls: ['<all_urls>']
-        },
-        ['blocking']
-      );
+        filter,
+        extraInfoSpec);
     }
 
     toggleIconState(tab.id, false);
@@ -116,23 +118,14 @@ chrome.pageAction.onClicked.addListener(function (tab) {
     saveStatus(tab.id, true);
 
     if (!listenerIsSet) {
+      console.log(`${tab.id}::[pageAction.onClicked]::Setting listener up`);
       chrome.webRequest.onBeforeRequest.addListener(
         networkListener,
-        {
-          urls: ['<all_urls>']
-        },
-        ['blocking']
+        filter,
+        extraInfoSpec
       );
     }
 
     toggleIconState(tab.id, true);
   }
 });
-
-chrome.webRequest.onBeforeRequest.addListener(
-  networkListener,
-  {
-    urls: ['<all_urls>']
-  },
-  ['blocking']
-);
